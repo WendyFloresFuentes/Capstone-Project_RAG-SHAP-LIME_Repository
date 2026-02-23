@@ -338,10 +338,10 @@ def page_chat():
 
             st.rerun()
 
-   with col2:
-    st.subheader("Explainability")
+    with col2:
+        st.subheader("Explainability")
 
-    if st.session_state.current_explanation:
+        if st.session_state.current_explanation:
         exp = st.session_state.current_explanation
 
         st.metric("Confidence", f"{exp['details']['confidence']:.2f}")
