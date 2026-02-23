@@ -342,27 +342,27 @@ def page_chat():
         st.subheader("Explainability")
 
         if st.session_state.current_explanation:
-        exp = st.session_state.current_explanation
+            exp = st.session_state.current_explanation
 
-        st.metric("Confidence", f"{exp['details']['confidence']:.2f}")
-        st.metric("Response Time", f"{exp['response_time']:.2f}s")
+            st.metric("Confidence", f"{exp['details']['confidence']:.2f}")
+            st.metric("Response Time", f"{exp['response_time']:.2f}s")
 
-        st.markdown("**Key Factors:**")
-        for f in exp["details"]["top_features"]:
-            st.markdown(f"- {f}")
+            st.markdown("**Key Factors:**")
+            for f in exp["details"]["top_features"]:
+                st.markdown(f"- {f}")
 
-        st.divider()
-        rating = st.radio("Rate response", ["👍 Helpful", "👎 Not Helpful"])
-        comment = st.text_area("Comment (optional)")
+            st.divider()
+            rating = st.radio("Rate response", ["👍 Helpful", "👎 Not Helpful"])
+            comment = st.text_area("Comment (optional)")
 
-        if st.button("Submit Feedback"):
-            save_feedback(
-                exp["input"],
-                exp["output"],
-                rating,
-                comment
-            )
-            st.success("Feedback saved!")
+            if st.button("Submit Feedback"):
+                save_feedback(
+                    exp["input"],
+                    exp["output"],
+                    rating,
+                    comment
+                )
+                st.success("Feedback saved!")
 
         # =====================
         # 🧠 LIME
