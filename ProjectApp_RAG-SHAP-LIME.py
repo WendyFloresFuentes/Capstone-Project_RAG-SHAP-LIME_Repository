@@ -338,7 +338,7 @@ def page_chat():
 
             st.rerun()
 
-        with col2:
+    with col2:
         st.subheader("Explainability")
 
         if st.session_state.current_explanation:
