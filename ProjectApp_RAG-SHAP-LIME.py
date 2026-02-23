@@ -338,7 +338,7 @@ def page_chat():
 
             st.rerun()
 
-    with col2:
+        with col2:
         st.subheader("Explainability")
 
         if st.session_state.current_explanation:
@@ -364,35 +364,29 @@ def page_chat():
                 )
                 st.success("Feedback saved!")
 
-        # =====================
-        # 🧠 LIME
-        # =====================
-        chunks = exp.get("chunks", [])
+            chunks = exp.get("chunks", [])
 
-        if chunks:
-            st.divider()
-            st.subheader("🧠 LIME Explanation")
+            if chunks:
+                st.divider()
+                st.subheader("🧠 LIME Explanation")
 
-            lime_exp = lime_explanation(chunks, exp["input"])
-            st.components.v1.html(
-                lime_exp.as_html(),
-                height=300,
-                scrolling=True
-            )
+                lime_exp = lime_explanation(chunks, exp["input"])
+                st.components.v1.html(
+                    lime_exp.as_html(),
+                    height=300,
+                    scrolling=True
+                )
 
-            # =====================
-            # 📊 SHAP
-            # =====================
-            st.divider()
-            st.subheader("📊 SHAP Explanation")
+                st.divider()
+                st.subheader("📊 SHAP Explanation")
 
-            shap_values = shap_explanation(chunks, exp["input"])
-            st.pyplot(shap.plots.bar(shap_values))
+                shap_values = shap_explanation(chunks, exp["input"])
+                st.pyplot(shap.plots.bar(shap_values))
+            else:
+                st.info("No document chunks available for explanation.")
+
         else:
-            st.info("No document chunks available for explanation.")
-
-    else:
-        st.info("Send a message to see explainability.")
+            st.info("Send a message to see explainability.")
 
 # =============================================================================
 # OTHER PAGES (reuse yours unchanged)
