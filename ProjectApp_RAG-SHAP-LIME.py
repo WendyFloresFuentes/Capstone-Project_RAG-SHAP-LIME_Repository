@@ -328,7 +328,7 @@ def page_chat():
                 "input": prompt,
                 "output": response,
                 "details": explanation,
-                "response_time": rt
+                "response_time": rt,
                 "chunks": chunks
             }
 
