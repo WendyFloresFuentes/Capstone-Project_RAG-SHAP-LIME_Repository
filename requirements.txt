@@ -5,9 +5,11 @@ langchain-community
 langchain-openai
 langchain-text-splitters
 pypdf
+PyPDF2
 chromadb
 pandas
 plotly
 shap
 lime
 sentence-transformers
+
