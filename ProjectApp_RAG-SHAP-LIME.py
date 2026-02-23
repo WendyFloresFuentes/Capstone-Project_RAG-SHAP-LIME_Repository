@@ -24,6 +24,10 @@ import plotly.graph_objects as go
 from typing import List, Dict
 from datetime import datetime
 from openai import OpenAI
+import shap
+import lime
+from lime.lime_text import LimeTextExplainer
+import numpy as np
 
 # =============================================================================
 # PAGE CONFIGURATION
@@ -130,6 +134,54 @@ def generate_response(message: str, temperature: float):
     )
 
     docs = retriever.invoke(message)
+    chunks = [d.page_content for d in docs]
+
+    #SHAP
+def shap_explanation(chunks: List[str], question: str):
+    """
+    SHAP over semantic similarity between chunks and question
+    """
+
+    embeddings = OpenAIEmbeddings()
+
+    chunk_embeddings = embeddings.embed_documents(chunks)
+    question_embedding = embeddings.embed_query(question)
+
+    def similarity_model(x):
+        sims = []
+        for emb in chunk_embeddings:
+            sims.append(np.dot(emb, question_embedding))
+        return np.array(sims)
+
+    explainer = shap.Explainer(similarity_model, chunks)
+    shap_values = explainer(chunks)
+
+    return shap_values
+
+    #
+    #LIME
+def lime_explanation(chunks: List[str], question: str):
+    explainer = LimeTextExplainer(class_names=["relevant"])
+
+    def predictor(texts):
+        embeddings = OpenAIEmbeddings()
+        q_emb = embeddings.embed_query(question)
+
+        scores = []
+        for t in texts:
+            t_emb = embeddings.embed_query(t)
+            scores.append([np.dot(t_emb, q_emb)])
+
+        return np.array(scores)
+
+    exp = explainer.explain_instance(
+        " ".join(chunks),
+        predictor,
+        num_features=5
+    )
+
+    return exp
+    #
 
     if not docs:
         context = ""
@@ -277,6 +329,7 @@ def page_chat():
                 "output": response,
                 "details": explanation,
                 "response_time": rt
+                "chunks": chunks
             }
 
             with chat_box:
@@ -312,6 +365,25 @@ def page_chat():
                 st.success("Feedback saved!")
         else:
             st.info("Send a message to see explainability.")
+            st.divider()
+st.subheader("🧠 LIME Explanation")
+
+chunks = exp.get("chunks", [])
+
+if chunks:
+    lime_exp = lime_explanation(chunks, exp["input"])
+    st.components.v1.html(
+        lime_exp.as_html(),
+        height=300,
+        scrolling=True
+    )
+
+st.divider()
+st.subheader("📊 SHAP Explanation")
+
+if chunks:
+    shap_values = shap_explanation(chunks, exp["input"])
+    st.pyplot(shap.plots.bar(shap_values))
 
 # =============================================================================
 # OTHER PAGES (reuse yours unchanged)
