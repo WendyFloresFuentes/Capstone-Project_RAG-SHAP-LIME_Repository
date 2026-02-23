@@ -338,52 +338,61 @@ def page_chat():
 
             st.rerun()
 
-    with col2:
-        st.subheader("Explainability")
+   with col2:
+    st.subheader("Explainability")
 
-        if st.session_state.current_explanation:
-            exp = st.session_state.current_explanation
+    if st.session_state.current_explanation:
+        exp = st.session_state.current_explanation
 
-            st.metric("Confidence", f"{exp['details']['confidence']:.2f}")
-            st.metric("Response Time", f"{exp['response_time']:.2f}s")
+        st.metric("Confidence", f"{exp['details']['confidence']:.2f}")
+        st.metric("Response Time", f"{exp['response_time']:.2f}s")
 
-            st.markdown("**Key Factors:**")
-            for f in exp["details"]["top_features"]:
-                st.markdown(f"- {f}")
+        st.markdown("**Key Factors:**")
+        for f in exp["details"]["top_features"]:
+            st.markdown(f"- {f}")
 
+        st.divider()
+        rating = st.radio("Rate response", ["👍 Helpful", "👎 Not Helpful"])
+        comment = st.text_area("Comment (optional)")
+
+        if st.button("Submit Feedback"):
+            save_feedback(
+                exp["input"],
+                exp["output"],
+                rating,
+                comment
+            )
+            st.success("Feedback saved!")
+
+        # =====================
+        # 🧠 LIME
+        # =====================
+        chunks = exp.get("chunks", [])
+
+        if chunks:
             st.divider()
-            rating = st.radio("Rate response", ["👍 Helpful", "👎 Not Helpful"])
-            comment = st.text_area("Comment (optional)")
+            st.subheader("🧠 LIME Explanation")
 
-            if st.button("Submit Feedback"):
-                save_feedback(
-                    exp["input"],
-                    exp["output"],
-                    rating,
-                    comment
-                )
-                st.success("Feedback saved!")
+            lime_exp = lime_explanation(chunks, exp["input"])
+            st.components.v1.html(
+                lime_exp.as_html(),
+                height=300,
+                scrolling=True
+            )
+
+            # =====================
+            # 📊 SHAP
+            # =====================
+            st.divider()
+            st.subheader("📊 SHAP Explanation")
+
+            shap_values = shap_explanation(chunks, exp["input"])
+            st.pyplot(shap.plots.bar(shap_values))
         else:
-            st.info("Send a message to see explainability.")
-            st.divider()
-st.subheader("🧠 LIME Explanation")
+            st.info("No document chunks available for explanation.")
 
-chunks = exp.get("chunks", [])
-
-if chunks:
-    lime_exp = lime_explanation(chunks, exp["input"])
-    st.components.v1.html(
-        lime_exp.as_html(),
-        height=300,
-        scrolling=True
-    )
-
-st.divider()
-st.subheader("📊 SHAP Explanation")
-
-if chunks:
-    shap_values = shap_explanation(chunks, exp["input"])
-    st.pyplot(shap.plots.bar(shap_values))
+    else:
+        st.info("Send a message to see explainability.")
 
 # =============================================================================
 # OTHER PAGES (reuse yours unchanged)
