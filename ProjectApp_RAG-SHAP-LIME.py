@@ -154,28 +154,30 @@ def generate_response(message: str, temperature: float):
 def shap_explanation(chunks: List[str], question: str):
     import matplotlib.pyplot as plt
     
-    # 1. This function MUST re-calculate scores for the variations SHAP creates
+    # 1. This function now accepts 'texts' from SHAP and recalculates scores
     def model_predict(texts):
         embeddings = OpenAIEmbeddings()
         q_emb = embeddings.embed_query(question)
         results = []
         for t in texts:
+            # If SHAP masks the entire string, return a score of 0
             if not t.strip():
                 results.append(0.0)
                 continue
-            # Re-embed the text variation to see if it's still relevant
+            # IMPORTANT: Re-calculate the embedding for the modified text
             t_emb = embeddings.embed_query(t)
             results.append(np.dot(t_emb, q_emb))
         return np.array(results)
 
-    # 2. Tell SHAP to split the text into words
+    # 2. Define a masker to tell SHAP how to split your text into tokens (words)
     masker = shap.maskers.Text(tokenizer=r"\W+")
     explainer = shap.Explainer(model_predict, masker=masker)
     
-    # 3. Use a single string of all chunks for word-level analysis
-    shap_values = explainer([" ".join(chunks)])
+    # 3. Explain the combined chunks as a single string
+    full_text = " ".join(chunks)
+    shap_values = explainer([full_text])
 
-    # 4. Force a clean Matplotlib figure
+    # 4. Create a clean Matplotlib figure for Streamlit to display
     fig = plt.figure(figsize=(10, 4))
     shap.plots.bar(shap_values[0], max_display=10, show=False)
     plt.tight_layout()
