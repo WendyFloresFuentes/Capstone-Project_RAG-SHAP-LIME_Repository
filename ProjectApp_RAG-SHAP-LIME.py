@@ -287,7 +287,7 @@ def page_chat():
             with st.chat_message("assistant"):
                 st.markdown(response)
 
-   with col2:
+     with col2:
             st.subheader("💡 Explainability Analysis")
 
             if st.session_state.current_explanation:
@@ -325,6 +325,7 @@ def page_chat():
                     st.success("Feedback saved!")
             else:
                 st.info("Send a message to see explainability.")
+
 
 # =============================================================================
 # OTHER PAGES (UNCHANGED)
