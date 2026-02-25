@@ -154,41 +154,41 @@ def generate_response(message: str, temperature: float):
 def shap_explanation(chunks: List[str], question: str):
     import matplotlib.pyplot as plt
     import numpy as np
-    
-    # 1. DYNAMIC PREDICTOR: This is the missing piece.
-    # It must re-calculate embeddings for the "masked" text SHAP sends.
+    from sklearn.metrics.pairwise import cosine_similarity
+
+    # Use a fresh embedding instance
+    embeddings = OpenAIEmbeddings()
+    q_emb = np.array(embeddings.embed_query(question)).reshape(1, -1)
+
     def model_predict(texts):
-        # Initialize embeddings inside the function to ensure clean state
-        embeddings = OpenAIEmbeddings()
-        q_emb = embeddings.embed_query(question)
-        
-        results = []
+        scores = []
         for t in texts:
             if not t.strip():
-                results.append(0.0)
+                scores.append(0.0)
                 continue
-            # Get a new embedding for this specific version of the text
-            t_emb = embeddings.embed_query(t)
-            # Calculate how relevant this version is
-            results.append(np.dot(t_emb, q_emb))
-        return np.array(results)
+            # Get embedding for the masked text
+            t_emb = np.array(embeddings.embed_query(t)).reshape(1, -1)
+            # Calculate cosine similarity
+            similarity = cosine_similarity(t_emb, q_emb)[0][0]
+            # SHAP bars are often tiny; we amplify them so they show up
+            scores.append(similarity * 100) 
+        return np.array(scores)
 
-    # 2. Tell SHAP to split your PDF chunks into words
+    # Use a simpler tokenizer to ensure SHAP doesn't get confused
     masker = shap.maskers.Text(tokenizer=r"\W+")
     explainer = shap.Explainer(model_predict, masker=masker)
     
-    # 3. Join chunks to analyze them as one coherent text
     full_text = " ".join(chunks)
-    shap_values = explainer([full_text])
+    # limit text length to ensure it doesn't time out
+    shap_values = explainer([full_text[:1000]]) 
 
-    # 4. CREATE THE PLOT: Force it onto a clean Matplotlib figure
     fig = plt.figure(figsize=(10, 4))
-    # We use .bar here because it works best with the 'fig' we return to st.pyplot
+    # We use the 'text' plot but force it to render as a bar chart
     shap.plots.bar(shap_values[0], max_display=10, show=False)
+    plt.title("Key Phrases Driving Relevance")
     plt.tight_layout()
     
     return fig
-       
 
 # =============================================================================
 # LIME (word relevance)
