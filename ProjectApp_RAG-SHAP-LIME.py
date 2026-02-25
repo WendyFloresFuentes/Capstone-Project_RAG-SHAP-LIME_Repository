@@ -151,8 +151,6 @@ def generate_response(message: str, temperature: float):
 # =============================================================================
 # SHAP (chunk relevance)
 # =============================================================================
-import matplotlib.pyplot as plt
-
 def shap_explanation(chunks: List[str], question: str):
     # 1. Initialize the explainer with a simpler model for speed
     def model_predict(texts):
@@ -160,7 +158,6 @@ def shap_explanation(chunks: List[str], question: str):
         q_emb = embeddings.embed_query(question)
         scores = []
         for t in texts:
-            # Handle empty strings from perturbations
             if not str(t).strip():
                 scores.append(0.0)
                 continue
@@ -168,18 +165,16 @@ def shap_explanation(chunks: List[str], question: str):
             scores.append(np.dot(t_emb, q_emb))
         return np.array(scores)
 
-    # 2. Use a smaller sample size to prevent timeouts
+    # 2. Set up the SHAP explainer
     explainer = shap.Explainer(model_predict, masker=shap.maskers.Text(tokenizer=r"\W+"))
-    
-    # We explain the combined chunks
     text_to_explain = " ".join(chunks)
     shap_values = explainer([text_to_explain])
 
-    # 3. FIX: Create a Matplotlib figure for Streamlit to render
+    # 3. Create a Matplotlib figure (This is the critical fix)
+    import matplotlib.pyplot as plt
     fig = plt.figure(figsize=(10, 3))
-    shap.plots.text(shap_values[0], display=False) # display=False prevents it from trying to pop up a window
+    shap.plots.text(shap_values[0], display=False) 
     
-    # Return the figure object
     return fig
 
 # =============================================================================
