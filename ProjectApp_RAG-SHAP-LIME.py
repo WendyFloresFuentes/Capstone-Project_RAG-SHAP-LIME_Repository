@@ -290,7 +290,7 @@ def page_chat():
                 st.divider()
                 st.subheader("🧠 LIME Explanation")
                 lime_exp = lime_explanation(chunks, exp["input"])
-                st.components.v1.html(lime_exp.as_html(), height=400, scrolling=True)
+                st.components.v1.html(lime_exp.as_html(), height=300, scrolling=True)
 
                 st.divider()
                 st.subheader("📊 SHAP Explanation")
