@@ -287,40 +287,44 @@ def page_chat():
             with st.chat_message("assistant"):
                 st.markdown(response)
 
-    with col2:
-        st.subheader("Explainability")
+   with col2:
+            st.subheader("💡 Explainability Analysis")
 
-        if st.session_state.current_explanation:
-            exp = st.session_state.current_explanation
-            chunks = exp["chunks"]
+            if st.session_state.current_explanation:
+                exp = st.session_state.current_explanation
+                chunks = exp["chunks"]
 
-            st.metric("Confidence", exp["details"]["confidence"])
-            st.metric("Response Time", f"{exp['response_time']:.2f}s")
+                # Keep your original metrics
+                st.metric("Confidence", exp["details"]["confidence"])
+                st.metric("Response Time", f"{exp['response_time']:.2f}s")
 
-            st.markdown("**Key Factors:**")
-            for f in exp["details"]["top_features"]:
-                st.markdown(f"- {f}")
+                if chunks:
+                    st.divider()
+                    
+                    # --- FIXED SHAP SECTION ---
+                    st.write("### 📊 SHAP (Chunk Relevance)")
+                    # We call the function and get the figure
+                    shap_fig = shap_explanation(chunks, exp["input"])
+                    st.pyplot(shap_fig, clear_figure=True)
 
-            if chunks:
+                    st.divider()
+
+                    # --- FIXED LIME SECTION ---
+                    st.write("### 🧠 LIME (Word Relevance)")
+                    lime_exp = lime_explanation(chunks, exp["input"])
+                    st.components.v1.html(lime_exp.as_html(), height=450, scrolling=True)
+
                 st.divider()
-                st.subheader("🧠 LIME Explanation")
-                lime_exp = lime_explanation(chunks, exp["input"])
-                st.components.v1.html(lime_exp.as_html(), height=300, scrolling=True)
+                
+                # Keep your original feedback section
+                rating = st.radio("Rate response", ["👍 Helpful", "👎 Not Helpful"])
+                comment = st.text_area("Comment (optional)")
 
-                st.divider()
-                st.subheader("📊 SHAP Explanation")
-                shap_values = shap_explanation(chunks, exp["input"])
-                st.pyplot(shap.plots.bar(shap_values))
-
-            st.divider()
-            rating = st.radio("Rate response", ["👍 Helpful", "👎 Not Helpful"])
-            comment = st.text_area("Comment (optional)")
-
-            if st.button("Submit Feedback"):
-                save_feedback(exp["input"], exp["output"], rating, comment)
-                st.success("Feedback saved!")
-        else:
-            st.info("Send a message to see explainability.")
+                if st.button("Submit Feedback"):
+                    save_feedback(exp["input"], exp["output"], rating, comment)
+                    st.success("Feedback saved!")
+            else:
+                st.info("Send a message to see explainability.")
 
 # =============================================================================
 # OTHER PAGES (UNCHANGED)
