@@ -152,29 +152,26 @@ def generate_response(message: str, temperature: float):
 # SHAP (chunk relevance)
 # =============================================================================
 def shap_explanation(chunks: List[str], question: str):
-    # 1. Initialize the explainer with a simpler model for speed
+    import matplotlib.pyplot as plt
+    
+    # 1. Simplified Predictor
     def model_predict(texts):
         embeddings = OpenAIEmbeddings()
         q_emb = embeddings.embed_query(question)
-        scores = []
-        for t in texts:
-            if not str(t).strip():
-                scores.append(0.0)
-                continue
-            t_emb = embeddings.embed_query(t)
-            scores.append(np.dot(t_emb, q_emb))
-        return np.array(scores)
+        # Calculate similarity for each perturbed text
+        return np.array([np.dot(embeddings.embed_query(t), q_emb) for t in texts])
 
-    # 2. Set up the SHAP explainer
+    # 2. Use the Bar Explainer logic
     explainer = shap.Explainer(model_predict, masker=shap.maskers.Text(tokenizer=r"\W+"))
-    text_to_explain = " ".join(chunks)
-    shap_values = explainer([text_to_explain])
+    shap_values = explainer([" ".join(chunks)])
 
-    # 3. Create a Matplotlib figure (This is the critical fix)
-    import matplotlib.pyplot as plt
-    fig = plt.figure(figsize=(10, 3))
-    shap.plots.text(shap_values[0], display=False) 
+    # 3. Create the Plot - THIS IS THE FIX
+    fig = plt.figure(figsize=(10, 5))
+    # We use .plots.bar instead of .plots.text for the chunk-level view
+    # and we pass the base values to ensure the bars have a starting point
+    shap.plots.bar(shap_values[0], show=False) 
     
+    plt.tight_layout() # Ensures labels don't get cut off
     return fig
 
 # =============================================================================
