@@ -151,16 +151,36 @@ def generate_response(message: str, temperature: float):
 # =============================================================================
 # SHAP (chunk relevance)
 # =============================================================================
+import matplotlib.pyplot as plt
+
 def shap_explanation(chunks: List[str], question: str):
-    embeddings = OpenAIEmbeddings()
-    chunk_embs = embeddings.embed_documents(chunks)
-    q_emb = embeddings.embed_query(question)
+    # 1. Initialize the explainer with a simpler model for speed
+    def model_predict(texts):
+        embeddings = OpenAIEmbeddings()
+        q_emb = embeddings.embed_query(question)
+        scores = []
+        for t in texts:
+            # Handle empty strings from perturbations
+            if not str(t).strip():
+                scores.append(0.0)
+                continue
+            t_emb = embeddings.embed_query(t)
+            scores.append(np.dot(t_emb, q_emb))
+        return np.array(scores)
 
-    def model(x):
-        return np.array([np.dot(e, q_emb) for e in chunk_embs])
+    # 2. Use a smaller sample size to prevent timeouts
+    explainer = shap.Explainer(model_predict, masker=shap.maskers.Text(tokenizer=r"\W+"))
+    
+    # We explain the combined chunks
+    text_to_explain = " ".join(chunks)
+    shap_values = explainer([text_to_explain])
 
-    explainer = shap.Explainer(model, chunks)
-    return explainer(chunks)
+    # 3. FIX: Create a Matplotlib figure for Streamlit to render
+    fig = plt.figure(figsize=(10, 3))
+    shap.plots.text(shap_values[0], display=False) # display=False prevents it from trying to pop up a window
+    
+    # Return the figure object
+    return fig
 
 # =============================================================================
 # LIME (word relevance)
