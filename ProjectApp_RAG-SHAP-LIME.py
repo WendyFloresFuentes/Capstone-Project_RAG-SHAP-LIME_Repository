@@ -153,36 +153,42 @@ def generate_response(message: str, temperature: float):
 # =============================================================================
 def shap_explanation(chunks: List[str], question: str):
     import matplotlib.pyplot as plt
+    import numpy as np
     
-    # 1. This function now accepts 'texts' from SHAP and recalculates scores
+    # 1. DYNAMIC PREDICTOR: This is the missing piece.
+    # It must re-calculate embeddings for the "masked" text SHAP sends.
     def model_predict(texts):
+        # Initialize embeddings inside the function to ensure clean state
         embeddings = OpenAIEmbeddings()
         q_emb = embeddings.embed_query(question)
+        
         results = []
         for t in texts:
-            # If SHAP masks the entire string, return a score of 0
             if not t.strip():
                 results.append(0.0)
                 continue
-            # IMPORTANT: Re-calculate the embedding for the modified text
+            # Get a new embedding for this specific version of the text
             t_emb = embeddings.embed_query(t)
+            # Calculate how relevant this version is
             results.append(np.dot(t_emb, q_emb))
         return np.array(results)
 
-    # 2. Define a masker to tell SHAP how to split your text into tokens (words)
+    # 2. Tell SHAP to split your PDF chunks into words
     masker = shap.maskers.Text(tokenizer=r"\W+")
     explainer = shap.Explainer(model_predict, masker=masker)
     
-    # 3. Explain the combined chunks as a single string
+    # 3. Join chunks to analyze them as one coherent text
     full_text = " ".join(chunks)
     shap_values = explainer([full_text])
 
-    # 4. Create a clean Matplotlib figure for Streamlit to display
+    # 4. CREATE THE PLOT: Force it onto a clean Matplotlib figure
     fig = plt.figure(figsize=(10, 4))
+    # We use .bar here because it works best with the 'fig' we return to st.pyplot
     shap.plots.bar(shap_values[0], max_display=10, show=False)
     plt.tight_layout()
     
     return fig
+       
 
 # =============================================================================
 # LIME (word relevance)
