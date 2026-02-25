@@ -166,21 +166,36 @@ def shap_explanation(chunks: List[str], question: str):
 # LIME (word relevance)
 # =============================================================================
 def lime_explanation(chunks: List[str], question: str):
-    explainer = LimeTextExplainer(class_names=["relevant"])
+    # Use two class names for better visualization
+    explainer = LimeTextExplainer(class_names=["Not Relevant", "Relevant"])
+    
     embeddings = OpenAIEmbeddings()
     q_emb = embeddings.embed_query(question)
 
     def predictor(texts):
         scores = []
         for t in texts:
+            if not t.strip():
+                scores.append([1.0, 0.0])
+                continue
+                
             t_emb = embeddings.embed_query(t)
-            scores.append([np.dot(t_emb, q_emb)])
+            dot_prod = np.dot(t_emb, q_emb)
+            
+            # Sigmoid normalization to keep the score between 0 and 1
+            prob_relevant = 1 / (1 + np.exp(-dot_prod))
+            
+            # Provide probability for both classes
+            scores.append([1 - prob_relevant, prob_relevant])
+            
         return np.array(scores)
 
+    # Use a smaller num_samples for faster API processing
     return explainer.explain_instance(
         " ".join(chunks),
         predictor,
-        num_features=6
+        num_features=6,
+        num_samples=50 
     )
 
 # =============================================================================
@@ -275,7 +290,7 @@ def page_chat():
                 st.divider()
                 st.subheader("🧠 LIME Explanation")
                 lime_exp = lime_explanation(chunks, exp["input"])
-                st.components.v1.html(lime_exp.as_html(), height=300, scrolling=True)
+                st.components.v1.html(lime_exp.as_html(), height=400, scrolling=True)
 
                 st.divider()
                 st.subheader("📊 SHAP Explanation")
