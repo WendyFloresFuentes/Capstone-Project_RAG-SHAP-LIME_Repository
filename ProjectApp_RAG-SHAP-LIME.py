@@ -154,31 +154,29 @@ def generate_response(message: str, temperature: float):
 def shap_explanation(chunks: List[str], question: str):
     import matplotlib.pyplot as plt
     
-    # 1. This function must re-calculate similarity for EVERY variation SHAP creates
+    # 1. This function MUST re-calculate scores for the variations SHAP creates
     def model_predict(texts):
         embeddings = OpenAIEmbeddings()
         q_emb = embeddings.embed_query(question)
         results = []
         for t in texts:
-            # If SHAP hides all words, return 0
             if not t.strip():
                 results.append(0.0)
                 continue
-            # Re-embed the 'perturbed' text and calculate dot product
+            # Re-embed the text variation to see if it's still relevant
             t_emb = embeddings.embed_query(t)
             results.append(np.dot(t_emb, q_emb))
         return np.array(results)
 
-    # 2. Use a masker so SHAP knows how to split the text into words
+    # 2. Tell SHAP to split the text into words
     masker = shap.maskers.Text(tokenizer=r"\W+")
     explainer = shap.Explainer(model_predict, masker=masker)
     
-    # Explain the combined text
+    # 3. Use a single string of all chunks for word-level analysis
     shap_values = explainer([" ".join(chunks)])
 
-    # 3. Use the correct plotting command for a static Matplotlib figure
+    # 4. Force a clean Matplotlib figure
     fig = plt.figure(figsize=(10, 4))
-    # 'max_display' limits it to the top 10 most impactful words
     shap.plots.bar(shap_values[0], max_display=10, show=False)
     plt.tight_layout()
     
